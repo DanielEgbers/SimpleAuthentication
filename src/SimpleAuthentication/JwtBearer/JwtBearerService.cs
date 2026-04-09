@@ -20,11 +20,16 @@ public class JwtBearerService(IOptions<JwtBearerSettings> jwtBearerSettingsOptio
     /// <inheritdoc />
     public virtual Task<string> CreateTokenAsync(string userName, IList<Claim>? claims = null, string? issuer = null, string? audience = null, DateTime? absoluteExpiration = null)
     {
+        var now = DateTime.UtcNow;
+
+        if (absoluteExpiration.HasValue && absoluteExpiration.Value < now)
+        {
+            throw new ArgumentException("The expiration date must be greater than or equal to the current date and time.", nameof(absoluteExpiration));
+        }
+
         claims ??= [];
         claims.Update(JwtBearerSettings.NameClaimType, userName);
         claims.Update(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString());
-
-        var now = DateTime.UtcNow;
 
         var securityTokenDescriptor = new SecurityTokenDescriptor()
         {
