@@ -15,7 +15,7 @@ public class JwtBearerService(IOptions<JwtBearerSettings> jwtBearerSettingsOptio
     /// <summary>
     /// Gets the JWT Bearer settings used by this service.
     /// </summary>
-    protected JwtBearerSettings JwtBearerSettings { get; } = jwtBearerSettingsOptions.Value;
+    protected JwtBearerSettings JwtBearerSettings { get; } = jwtBearerSettingsOptions?.Value ?? throw new ArgumentNullException(nameof(jwtBearerSettingsOptions));
 
     /// <inheritdoc />
     public virtual Task<string> CreateTokenAsync(string userName, IList<Claim>? claims = null, string? issuer = null, string? audience = null, DateTime? absoluteExpiration = null)
