@@ -21,7 +21,7 @@ public interface IJwtBearerService
     /// <returns>The JWT bearer token.</returns>
     /// <exception cref="ArgumentException"><paramref name="absoluteExpiration"/> is &lt; DateTime.UtcNow.</exception>    
     [Obsolete("This method has been deprecated and will be removed in a future version. Use CreateTokenAsync instead.")]
-    string CreateToken(string userName, IList<Claim>? claims = null, string? issuer = null, string? audience = null, DateTime? absoluteExpiration = null)
+    string CreateToken(string userName, IEnumerable<Claim>? claims = null, string? issuer = null, string? audience = null, DateTime? absoluteExpiration = null)
         => CreateTokenAsync(userName, claims, issuer, audience, absoluteExpiration).ConfigureAwait(false).GetAwaiter().GetResult();
 
     /// <summary>
@@ -34,7 +34,7 @@ public interface IJwtBearerService
     /// <param name="absoluteExpiration">The absolute expiration of the token. If <see langword="null"/>, the expiration time specified in the configuration will be used, if any.</param>
     /// <returns>The JWT bearer token.</returns>
     /// <exception cref="ArgumentException"><paramref name="absoluteExpiration"/> is &lt; DateTime.UtcNow.</exception>    
-    Task<string> CreateTokenAsync(string userName, IList<Claim>? claims = null, string? issuer = null, string? audience = null, DateTime? absoluteExpiration = null);
+    Task<string> CreateTokenAsync(string userName, IEnumerable<Claim>? claims = null, string? issuer = null, string? audience = null, DateTime? absoluteExpiration = null);
 
     /// <summary>
     /// Reads and validates a 'JSON Web Token' (JWT) encoded as a JWS or JWE in Compact Serialized Format.
