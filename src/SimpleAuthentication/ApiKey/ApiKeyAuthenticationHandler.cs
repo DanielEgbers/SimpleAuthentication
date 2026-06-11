@@ -43,7 +43,8 @@ internal class ApiKeyAuthenticationHandler(IOptionsMonitor<ApiKeySettings> optio
             return CreateAuthenticationSuccessResult(validationResult.UserName, validationResult.Claims);
         }
 
-        var apiKey = apiKeys.FirstOrDefault(a => CryptographicOperations.FixedTimeEquals(MemoryMarshal.AsBytes(a.Value.AsSpan()), MemoryMarshal.AsBytes(value.ToString().AsSpan())));
+        var providedApiKey = value.ToString();
+        var apiKey = apiKeys.FirstOrDefault(a => CryptographicOperations.FixedTimeEquals(MemoryMarshal.AsBytes(a.Value.AsSpan()), MemoryMarshal.AsBytes(providedApiKey.AsSpan())));
 
         if (apiKey is null)
         {
