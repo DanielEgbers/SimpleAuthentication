@@ -3,7 +3,7 @@
 [![Lint Code Base](https://github.com/marcominerva/SimpleAuthentication/actions/workflows/linter.yml/badge.svg)](https://github.com/marcominerva/SimpleAuthentication/actions/workflows/linter.yml)
 [![CodeQL](https://github.com/marcominerva/SimpleAuthentication/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/marcominerva/SimpleAuthentication/actions/workflows/github-code-scanning/codeql)
 [![Nuget](https://img.shields.io/nuget/v/SimpleAuthenticationTools)](https://www.nuget.org/packages/SimpleAuthenticationTools)
-[![Nuget](https://img.shields.io/nuget/dt/SimpleAuthenticationTools)](https://www.nuget.org/packages/SimpleAuthenticationTools)
+[![NuGet](https://img.shields.io/nuget/dt/SimpleAuthenticationTools)](https://www.nuget.org/packages/SimpleAuthenticationTools)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/marcominerva/SimpleAuthentication/blob/master/LICENSE)
 
 A library to easily integrate Authentication in ASP.NET Core projects. Currently it supports JWT Bearer, API Key and Basic Authentication in both Controller-based and Minimal API projects.
