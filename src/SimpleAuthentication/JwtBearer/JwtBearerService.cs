@@ -18,7 +18,7 @@ public class JwtBearerService(IOptions<JwtBearerSettings> jwtBearerSettingsOptio
     protected JwtBearerSettings JwtBearerSettings { get; } = jwtBearerSettingsOptions?.Value ?? throw new ArgumentNullException(nameof(jwtBearerSettingsOptions));
 
     /// <inheritdoc />
-    public virtual Task<string> CreateTokenAsync(string userName, IList<Claim>? claims = null, string? issuer = null, string? audience = null, DateTime? absoluteExpiration = null)
+    public virtual Task<string> CreateTokenAsync(string userName, IEnumerable<Claim>? claims = null, string? issuer = null, string? audience = null, DateTime? absoluteExpiration = null)
     {
         var now = DateTime.UtcNow;
 
@@ -27,13 +27,13 @@ public class JwtBearerService(IOptions<JwtBearerSettings> jwtBearerSettingsOptio
             throw new ArgumentException("The expiration date must be greater than or equal to the current date and time.", nameof(absoluteExpiration));
         }
 
-        claims ??= [];
-        claims.Update(JwtBearerSettings.NameClaimType, userName);
-        claims.Update(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString());
+        var claimsList = claims?.ToList() ?? [];
+        claimsList.Update(JwtBearerSettings.NameClaimType, userName);
+        claimsList.Update(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString());
 
         var securityTokenDescriptor = new SecurityTokenDescriptor()
         {
-            Subject = new ClaimsIdentity(claims, JwtBearerSettings.SchemeName, JwtBearerSettings.NameClaimType, JwtBearerSettings.RoleClaimType),
+            Subject = new ClaimsIdentity(claimsList, JwtBearerSettings.SchemeName, JwtBearerSettings.NameClaimType, JwtBearerSettings.RoleClaimType),
             Issuer = issuer ?? JwtBearerSettings.Issuers?.FirstOrDefault(),
             Audience = audience ?? JwtBearerSettings.Audiences?.FirstOrDefault(),
             IssuedAt = now,
@@ -63,9 +63,9 @@ public class JwtBearerService(IOptions<JwtBearerSettings> jwtBearerSettingsOptio
             AuthenticationType = JwtBearerSettings.SchemeName,
             NameClaimType = JwtBearerSettings.NameClaimType,
             RoleClaimType = JwtBearerSettings.RoleClaimType,
-            ValidateIssuer = JwtBearerSettings.Issuers?.Any() ?? false,
+            ValidateIssuer = JwtBearerSettings.Issuers?.Length > 0,
             ValidIssuers = JwtBearerSettings.Issuers,
-            ValidateAudience = JwtBearerSettings.Audiences?.Any() ?? false,
+            ValidateAudience = JwtBearerSettings.Audiences?.Length > 0,
             ValidAudiences = JwtBearerSettings.Audiences,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtBearerSettings.SecurityKey)),
@@ -89,7 +89,7 @@ public class JwtBearerService(IOptions<JwtBearerSettings> jwtBearerSettingsOptio
     public virtual async Task<string> RefreshTokenAsync(string token, bool validateLifetime, DateTime? absoluteExpiration = null)
     {
         var principal = await ValidateTokenAsync(token, validateLifetime);
-        var claims = (principal.Identity as ClaimsIdentity)!.Claims.ToList();
+        var claims = (principal.Identity as ClaimsIdentity)!.Claims;
 
         var userName = claims.First(c => c.Type == JwtBearerSettings.NameClaimType).Value;
         var issuer = claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Iss)?.Value;

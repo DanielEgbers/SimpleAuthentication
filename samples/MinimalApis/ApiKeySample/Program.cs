@@ -80,10 +80,15 @@ public class CustomApiKeyValidator : IApiKeyValidator
 {
     public Task<ApiKeyValidationResult> ValidateAsync(string apiKey)
     {
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.Role, "User")
+        };
+
         var result = apiKey switch
         {
-            "ArAilHVOoL3upX78Cohq" => ApiKeyValidationResult.Success("User 1"),
-            "DiUU5EqImTYkxPDAxBVS" => ApiKeyValidationResult.Success("User 2"),
+            "ArAilHVOoL3upX78Cohq" => ApiKeyValidationResult.Success("User 1", claims),
+            "DiUU5EqImTYkxPDAxBVS" => ApiKeyValidationResult.Success("User 2", claims),
             _ => ApiKeyValidationResult.Fail("Invalid User")
         };
 

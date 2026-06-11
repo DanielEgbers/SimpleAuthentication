@@ -1,4 +1,6 @@
-﻿using System.Security.Claims;
+﻿using System.Runtime.InteropServices;
+using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
@@ -47,37 +49,39 @@ internal partial class BasicAuthenticationHandler(IOptionsMonitor<BasicAuthentic
             var validator = serviceProvider.GetService<IBasicAuthenticationValidator>() ?? throw new InvalidOperationException("There isn't a default user name and password for authentication and no custom validator has been provided");
 
             var validationResult = await validator.ValidateAsync(userName, password);
-            if (validationResult.Succeeded)
+            if (!validationResult.Succeeded)
             {
-                return CreateAuthenticationSuccessResult(validationResult.UserName, validationResult.Claims);
+                return AuthenticateResult.Fail(validationResult.FailureMessage);
             }
 
-            return AuthenticateResult.Fail(validationResult.FailureMessage);
+            return CreateAuthenticationSuccessResult(validationResult.UserName, validationResult.Claims);
         }
 
-        var credential = credentials.FirstOrDefault(c => c.UserName == userName && c.Password == password);
-        if (credential is not null)
+        var credential = credentials.FirstOrDefault(c => CryptographicOperations.FixedTimeEquals(MemoryMarshal.AsBytes(c.UserName.AsSpan()), MemoryMarshal.AsBytes(userName.AsSpan()))
+            && CryptographicOperations.FixedTimeEquals(MemoryMarshal.AsBytes(c.Password.AsSpan()), MemoryMarshal.AsBytes(password.AsSpan())));
+
+        if (credential is null)
         {
-            var claims = new List<Claim>();
-            if (credential.Roles is not null)
+            return AuthenticateResult.Fail("Invalid user name or password");
+        }
+
+        var claims = new List<Claim>();
+        if (credential.Roles is not null)
+        {
+            foreach (var role in credential.Roles)
             {
-                foreach (var role in credential.Roles)
-                {
-                    claims.Add(new(Options.RoleClaimType, role));
-                }
+                claims.Add(new(Options.RoleClaimType, role));
             }
-
-            return CreateAuthenticationSuccessResult(credential.UserName, claims);
         }
 
-        return AuthenticateResult.Fail("Invalid user name or password");
+        return CreateAuthenticationSuccessResult(credential.UserName, claims);
 
-        AuthenticateResult CreateAuthenticationSuccessResult(string userName, IList<Claim>? claims = null)
+        AuthenticateResult CreateAuthenticationSuccessResult(string userName, IEnumerable<Claim>? claims = null)
         {
-            claims ??= [];
-            claims.Update(Options.NameClaimType, userName);
+            var claimsList = claims?.ToList() ?? [];
+            claimsList.Update(Options.NameClaimType, userName);
 
-            var identity = new ClaimsIdentity(claims, Scheme.Name, Options.NameClaimType, Options.RoleClaimType);
+            var identity = new ClaimsIdentity(claimsList, Scheme.Name, Options.NameClaimType, Options.RoleClaimType);
             var principal = new ClaimsPrincipal(identity);
             var ticket = new AuthenticationTicket(principal, Scheme.Name);
 
@@ -86,6 +90,6 @@ internal partial class BasicAuthenticationHandler(IOptionsMonitor<BasicAuthentic
         }
     }
 
-    [GeneratedRegex(@"Basic (.*)", RegexOptions.IgnoreCase | RegexOptions.Compiled, "it-IT")]
+    [GeneratedRegex(@"Basic (.*)", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant)]
     private static partial Regex BasicAuthorizationHeaderRegex();
 }

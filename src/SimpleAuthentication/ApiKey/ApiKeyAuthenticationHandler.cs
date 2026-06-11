@@ -1,4 +1,6 @@
-﻿using System.Security.Claims;
+﻿using System.Runtime.InteropServices;
+using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,37 +35,40 @@ internal class ApiKeyAuthenticationHandler(IOptionsMonitor<ApiKeySettings> optio
             var validator = serviceProvider.GetService<IApiKeyValidator>() ?? throw new InvalidOperationException("There isn't a default value for API Key and no custom validator has been provided");
 
             var validationResult = await validator.ValidateAsync(value.ToString());
-            if (validationResult.Succeeded)
+            if (!validationResult.Succeeded)
             {
-                return CreateAuthenticationSuccessResult(validationResult.UserName, validationResult.Claims);
+                return AuthenticateResult.Fail(validationResult.FailureMessage);
             }
 
-            return AuthenticateResult.Fail(validationResult.FailureMessage);
+            return CreateAuthenticationSuccessResult(validationResult.UserName, validationResult.Claims);
         }
 
-        var apiKey = apiKeys.FirstOrDefault(c => c.Value == value);
-        if (apiKey is not null)
+        var providedApiKey = value.ToString();
+        var apiKey = apiKeys.FirstOrDefault(a => CryptographicOperations.FixedTimeEquals(MemoryMarshal.AsBytes(a.Value.AsSpan()), MemoryMarshal.AsBytes(providedApiKey.AsSpan())));
+
+        if (apiKey is null)
         {
-            var claims = new List<Claim>();
-            if (apiKey.Roles is not null)
+
+            return AuthenticateResult.Fail("Invalid API Key");
+        }
+
+        var claims = new List<Claim>();
+        if (apiKey.Roles is not null)
+        {
+            foreach (var role in apiKey.Roles)
             {
-                foreach (var role in apiKey.Roles)
-                {
-                    claims.Add(new(Options.RoleClaimType, role));
-                }
+                claims.Add(new(Options.RoleClaimType, role));
             }
-
-            return CreateAuthenticationSuccessResult(apiKey.UserName, claims);
         }
 
-        return AuthenticateResult.Fail("Invalid API Key");
+        return CreateAuthenticationSuccessResult(apiKey.UserName, claims);
 
-        AuthenticateResult CreateAuthenticationSuccessResult(string userName, IList<Claim>? claims = null)
+        AuthenticateResult CreateAuthenticationSuccessResult(string userName, IEnumerable<Claim>? claims = null)
         {
-            claims ??= [];
-            claims.Update(Options.NameClaimType, userName);
+            var claimsList = claims?.ToList() ?? [];
+            claimsList.Update(Options.NameClaimType, userName);
 
-            var identity = new ClaimsIdentity(claims, Scheme.Name, Options.NameClaimType, Options.RoleClaimType);
+            var identity = new ClaimsIdentity(claimsList, Scheme.Name, Options.NameClaimType, Options.RoleClaimType);
             var principal = new ClaimsPrincipal(identity);
             var ticket = new AuthenticationTicket(principal, Scheme.Name);
 
