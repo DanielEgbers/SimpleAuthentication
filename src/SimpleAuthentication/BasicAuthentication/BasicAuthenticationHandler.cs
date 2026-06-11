@@ -90,6 +90,6 @@ internal partial class BasicAuthenticationHandler(IOptionsMonitor<BasicAuthentic
         }
     }
 
-    [GeneratedRegex(@"Basic (.*)", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(@"Basic (.*)", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant)]
     private static partial Regex BasicAuthorizationHeaderRegex();
 }
